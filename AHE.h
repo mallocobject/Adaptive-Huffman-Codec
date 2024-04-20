@@ -4,7 +4,7 @@
 #include <string>
 
 using uint = unsigned int;
-#define NYT_SYMBOL -1
+#define NYT_SYMBOL -1 // Not Yet Transmitted
 
 struct Node
 {

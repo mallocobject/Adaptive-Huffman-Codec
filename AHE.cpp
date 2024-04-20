@@ -132,6 +132,10 @@ Node *AHE::getMaxIndexNode(uint frequency)
             max_node = node; // 更新 max_node
             break;           // 跳出循环
         }
+        else if (node->frequency < frequency)
+        {
+            continue;
+        }
         if (node->right)
         {
             q.push(node->right);
