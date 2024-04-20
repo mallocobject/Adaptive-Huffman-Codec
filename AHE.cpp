@@ -1,104 +1,152 @@
 #include "AHE.h"
-#include <limits>
-#include <stack>
 
-void AdaptiveHuffmanTree::updateTree(uchar symbol)
+#include <iostream>
+#include <queue>
+
+AHE::AHE()
 {
-    auto [i, j] = findNode(symbol);
-    Node *cur_node = nullptr;
-    if (i == -1)
-    {
-        createNode(symbol);
-        cur_node = NYT->parent->parent;
-    }
-    else
-    {
-        cur_node = nodes[i][j];
-    }
-
-    // exchange first, then update
-    while (cur_node != nullptr)
-    {
-        Node *max_node = getMaxNodeWithWeight(root, cur_node->weight);
-        if (max_node != cur_node)
-        {
-            swapNodes(cur_node, max_node);
-        }
-        auto [i, j] = findNode(cur_node);
-        nodes[i].erase(nodes[i].begin() + j);
-        cur_node->weight++;
-        nodes[cur_node->weight].push_back(cur_node);
-        cur_node = cur_node->parent;
-    }
+    root = new Node(-1, 0);
+    NYT = root;
+    code_table.clear();
+    // code_table[NYT_SYMBOL] = "";
+    // for (int i = 0; i < 128; i++)
+    // {
+    //     std::string code = "";
+    //     for (int j = 6; j >= 0; j--)
+    //     {
+    //         code += ((i >> j) & 1) ? '1' : '0';
+    //     }
+    //     code_table[i] = code;
+    // }
 }
 
-Node *AdaptiveHuffmanTree::createNode(uchar symbol)
+AHE::~AHE()
 {
-    Node *internal_node = new Node;
-    internal_node->parent = NYT->parent;
-    internal_node->left = NYT;
-    NYT->parent = internal_node;
-    NYT->index -= 2;
-    internal_node->weight = 1;
-    internal_node->index = NYT->index;
-
-    Node *leaf_node = new Node;
-    leaf_node->weight = 1;
-    leaf_node->index = NYT->index - 1;
-    leaf_node->parent = internal_node;
-    leaf_node->left = nullptr;
-    leaf_node->right = nullptr;
-    internal_node->right = leaf_node;
-
-    return leaf_node;
+    deleteTree(root);
 }
 
-std::pair<int, int> AdaptiveHuffmanTree::findNode(uchar symbol)
-{
-    for (size_t i = 0; i < nodes.size(); i++)
-    {
-        for (size_t j = 0; j < nodes[i].size(); j++)
-        {
-            if (nodes[i][j]->symbol == symbol)
-            {
-                return {i, j};
-            }
-        }
-    }
-    return {-1, -1};
-}
-
-std::pair<int, int> AdaptiveHuffmanTree::findNode(Node *node)
+void AHE::deleteTree(Node *node)
 {
     if (node == nullptr)
-    {
-        return {-1, -1};
-    }
-    for (size_t i = 0; i < nodes.size(); i++)
-    {
-        for (size_t j = 0; j < nodes[i].size(); j++)
-        {
-            if (nodes[i][j] == node)
-            {
-                return {i, j};
-            }
-        }
-    }
-    return {-1, -1};
+        return;
+
+    deleteTree(node->left);
+    deleteTree(node->right);
+
+    delete node;
 }
 
-void AdaptiveHuffmanTree::swapNodes(Node *node1, Node *node2)
+void AHE::encode(const char *input)
 {
-    Node *temp = node1->parent;
-    size_t temp_index = node1->index;
-    if (node2->parent->left == node2)
+    std::string ret = "";
+    for (const char *p = input; *p; p++)
     {
-        node2->parent->left = node1;
+        char symbol = *p;
+        if (code_table.find(symbol) != code_table.end())
+        {
+            ret += code_table[symbol];
+        }
+        else
+        {
+            std::string code = code_table[NYT_SYMBOL];
+            for (int j = 6; j >= 0; j--)
+            {
+                code += ((symbol >> j) & 1) ? '1' : '0';
+            }
+            ret += code;
+        }
+        ret += ' ';
+        update(symbol);
+    }
+
+    std::cout << ret << std::endl;
+}
+
+void AHE::update(char symbol)
+{
+    // std::cout << "Hello, World!" << std::endl;
+    Node *node = nullptr;
+    if (code_table.find(symbol) != code_table.end())
+    {
+        node = root;
+        while (!node->isLeaf())
+        {
+            for (int i = 0; i < code_table[symbol].size(); i++)
+            {
+                node = code_table[symbol][i] == '0' ? node->left : node->right;
+            }
+        }
+        Node *cur_node = node;
+        while (cur_node != nullptr)
+        {
+            Node *max_node = getMaxIndexNode(cur_node->frequency);
+            if (max_node != nullptr && cur_node != max_node)
+            {
+                swapNode(cur_node, max_node);
+            }
+            cur_node->frequency++;
+            cur_node = cur_node->parent;
+        }
     }
     else
     {
-        node2->parent->right = node1;
+        Node *new_node = new Node(symbol, 1, nullptr, nullptr, NYT);
+        NYT->right = new_node;
+        NYT->left = new Node(NYT_SYMBOL, 0, nullptr, nullptr, NYT);
+        NYT = NYT->left;
+
+        new_node->parent->frequency++;
+
+        // code_table[symbol] = code_table[NYT_SYMBOL] + code_table[symbol];
+        // code_table[NYT_SYMBOL] += '0';
+        // 判断该子树的父节点是否需要交换
+        node = NYT->parent->parent;
+
+        Node *cur_node = node;
+        while (cur_node != nullptr)
+        {
+            Node *max_node = getMaxIndexNode(cur_node->frequency);
+            if (max_node != nullptr && cur_node != max_node)
+            {
+                swapNode(cur_node, max_node);
+            }
+            cur_node->frequency++;
+            cur_node = cur_node->parent;
+        }
     }
+
+    updateCodetable(root, ""); // 更新编码表
+}
+
+Node *AHE::getMaxIndexNode(uint frequency)
+{
+    std::queue<Node *> q;
+    q.push(root);
+    Node *max_node = nullptr;
+    while (!q.empty())
+    {
+        Node *node = q.front();
+        q.pop();
+        if (node->frequency == frequency)
+        {
+            max_node = node; // 更新 max_node
+            break;           // 跳出循环
+        }
+        if (node->right)
+        {
+            q.push(node->right);
+        }
+        if (node->left)
+        {
+            q.push(node->left);
+        }
+    }
+    return max_node;
+}
+
+void AHE::swapNode(Node *node1, Node *node2)
+{
+    bool isLeft = node2->parent->left == node2;
 
     if (node1->parent->left == node1)
     {
@@ -108,77 +156,32 @@ void AdaptiveHuffmanTree::swapNodes(Node *node1, Node *node2)
     {
         node1->parent->right = node2;
     }
-    node1->parent = node2->parent;
-    node1->index = node2->index;
-    node2->parent = temp;
-    node2->index = temp_index;
-}
 
-AdaptiveHuffmanTree::AdaptiveHuffmanTree() : root(nullptr), NYT(nullptr)
-{
-    nodes.resize(1);
-    NYT = new Node;
-    NYT->weight = 0;
-    NYT->index = std::numeric_limits<uchar>::max();
-    NYT->parent = nullptr;
-    NYT->left = nullptr;
-    NYT->right = nullptr;
-    root = NYT;
-}
-
-Node *AdaptiveHuffmanTree::getMaxNodeWithWeight(Node *startNode, int weight)
-{
-    Node *maxNode = nullptr;
-
-    std::stack<Node *> stack;
-    stack.push(startNode);
-
-    while (!stack.empty())
+    if (isLeft)
     {
-        Node *node = stack.top();
-        stack.pop();
-
-        if (node->weight == weight)
-        {
-            if (maxNode == nullptr || node->index > maxNode->index)
-            {
-                maxNode = node;
-            }
-        }
-
-        if (node->left != nullptr)
-        {
-            stack.push(node->left);
-        }
-        if (node->right != nullptr)
-        {
-            stack.push(node->right);
-        }
+        node2->parent->left = node1;
+    }
+    else
+    {
+        node2->parent->right = node1;
     }
 
-    return maxNode;
+    std::swap(node1->parent, node2->parent);
 }
 
-AdaptiveHuffmanTree::~AdaptiveHuffmanTree()
+void AHE::updateCodetable(Node *node, const std::string &code)
 {
-    std::stack<Node *> stack;
-    stack.push(root);
-
-    while (!stack.empty())
+    if (node->isLeaf())
     {
-        Node *node = stack.top();
-        stack.pop();
-
-        if (node->left != nullptr)
-        {
-            stack.push(node->left);
-        }
-        if (node->right != nullptr)
-        {
-            stack.push(node->right);
-        }
-
-        delete node;
-        node = nullptr;
+        code_table[node->symbol] = code;
+        return;
+    }
+    if (node->left)
+    {
+        updateCodetable(node->left, code + '0'); // 左子树编码为0
+    }
+    if (node->right)
+    {
+        updateCodetable(node->right, code + '1'); // 右子树编码为1
     }
 }
