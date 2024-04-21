@@ -233,6 +233,11 @@ void AHE::encode(const std::string &input)
     showTree();
     terminal::reset();
 
+    for (char c : input)
+    {
+        std::cout << c << " ";
+    }
+    std::cout << input.size() << std::endl;
     std::cout << ret << std::endl;
 }
 

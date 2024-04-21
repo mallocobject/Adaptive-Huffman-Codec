@@ -6,8 +6,11 @@
 
 int main()
 {
-    std::cout << "Hello, World!" << std::endl;
+    // std::cout << '?' << std::endl;
     AHE ahe;
+    // char c = 31;
+    // std::cout << c << std::endl;
+    // ahe.encode("?aabbbacc");
 
     // "\0\a\b\t\n\v\f\r\"\'\\?"
     // ahe.encode(R"(\0\a\b\t\n\v\f\r\"\'\\?)");
@@ -20,19 +23,8 @@ int main()
         {
             char ch = utils::generateRandomNumber(0, 127); // generate 0-127 ASCII characters
 
-            // avoid escape characters
-            while (ch == '\0' ||
-                   ch == '\a' ||
-                   ch == '\b' ||
-                   ch == '\t' ||
-                   ch == '\n' ||
-                   ch == '\v' ||
-                   ch == '\f' ||
-                   ch == '\r' ||
-                   ch == '\"' ||
-                   ch == '\'' ||
-                   ch == '\\' ||
-                   ch == '\?')
+            // avoid control characters
+            while (ch <= 31 || ch == 127)
             {
                 ch = utils::generateRandomNumber(0, 127);
             }
@@ -48,5 +40,6 @@ int main()
     // std::string input;
     // std::getline(std::cin, input);
     // ahe.encode(input);
+    system("pause");
     return 0;
 }
