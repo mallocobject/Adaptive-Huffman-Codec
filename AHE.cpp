@@ -88,7 +88,7 @@ void AHE::update(const char symbol)
         {
             Node *max_node = getMaxIndexNode(cur_node);
             // max_node 不可能为根节点 root
-            if (max_node != nullptr && cur_node != max_node)
+            if (cur_node != max_node)
             {
                 swapNode(cur_node, max_node);
             }
@@ -112,7 +112,7 @@ void AHE::update(const char symbol)
         while (cur_node != nullptr)
         {
             Node *max_node = getMaxIndexNode(cur_node);
-            if (max_node != nullptr && cur_node != max_node)
+            if (cur_node != max_node)
             {
                 swapNode(cur_node, max_node);
             }
@@ -136,8 +136,9 @@ std::string AHE::vectorBool2String(const std::vector<bool> &v)
     return res;
 }
 
+// BFS (广度优先搜索)
 // 根， 右， 左
-// 获取权重相同，但位置最高的节点
+// 保证权重相同的节点中位置最高的节点优先遍历
 // 获取的节点不与 node 有祖先关系
 Node *AHE::getMaxIndexNode(Node *node)
 {
@@ -148,25 +149,10 @@ Node *AHE::getMaxIndexNode(Node *node)
     {
         Node *cur_node = q.front();
         q.pop();
-        if (cur_node->frequency == node->frequency)
-        {
-            Node *node_parent = node->parent;
-            bool isAncestor = false;
 
-            // 判断当前节点是否是 node 的祖先节点, 如果是则继续遍历
-            while (node_parent != nullptr)
-            {
-                if (node_parent == cur_node)
-                {
-                    isAncestor = true;
-                    break;
-                }
-                node_parent = node_parent->parent;
-            }
-            if (isAncestor)
-            {
-                continue;
-            }
+        // 如果当前节点的频率等于 frequency，且不是 node 的祖先节点(即不与 node 有父子关系)
+        if (cur_node->frequency == node->frequency && cur_node != node->parent)
+        {
             max_node = cur_node; // 更新 max_node
             break;               // 跳出循环
         }
