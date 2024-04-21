@@ -25,6 +25,7 @@ AHE::~AHE()
     deleteTree(root);
 }
 
+// 递归删除树
 void AHE::deleteTree(Node *node)
 {
     if (node == nullptr)
@@ -36,33 +37,36 @@ void AHE::deleteTree(Node *node)
     delete node;
 }
 
-void AHE::encode(const char *input)
+// 编码入口
+void AHE::encode(const std::string &input)
 {
     std::string ret = "";
-    for (const char *p = input; *p; p++)
+    for (const char symbol : input)
     {
-        char symbol = *p;
         if (code_table.find(symbol) != code_table.end())
         {
-            ret += code_table[symbol];
+            ret += vectorBool2String(code_table[symbol]);
         }
         else
         {
-            std::string code = code_table[NYT_SYMBOL];
+            std::string code = vectorBool2String(code_table[NYT_SYMBOL]);
+
+            // 7 bits standard ASCII code
             for (int j = 6; j >= 0; j--)
             {
                 code += ((symbol >> j) & 1) ? '1' : '0';
             }
             ret += code;
         }
-        ret += ' ';
+        ret += ' '; // split each code with a space
         update(symbol);
     }
 
     std::cout << ret << std::endl;
 }
 
-void AHE::update(char symbol)
+// 动态调整树结构，保持树的平衡
+void AHE::update(const char symbol)
 {
     // std::cout << "Hello, World!" << std::endl;
     Node *node = nullptr;
@@ -73,13 +77,16 @@ void AHE::update(char symbol)
         {
             for (int i = 0; i < code_table[symbol].size(); i++)
             {
-                node = code_table[symbol][i] == '0' ? node->left : node->right;
+                node = code_table[symbol][i] == false ? node->left : node->right;
             }
         }
+
+        // 判断该叶子节点是否需要交换
         Node *cur_node = node;
         while (cur_node != nullptr)
         {
-            Node *max_node = getMaxIndexNode(cur_node->frequency);
+            Node *max_node = getMaxIndexNode(cur_node);
+            // max_node 不可能为根节点 root
             if (max_node != nullptr && cur_node != max_node)
             {
                 swapNode(cur_node, max_node);
@@ -97,15 +104,13 @@ void AHE::update(char symbol)
 
         new_node->parent->frequency++;
 
-        // code_table[symbol] = code_table[NYT_SYMBOL] + code_table[symbol];
-        // code_table[NYT_SYMBOL] += '0';
         // 判断该子树的父节点是否需要交换
         node = NYT->parent->parent;
 
         Node *cur_node = node;
         while (cur_node != nullptr)
         {
-            Node *max_node = getMaxIndexNode(cur_node->frequency);
+            Node *max_node = getMaxIndexNode(cur_node);
             if (max_node != nullptr && cur_node != max_node)
             {
                 swapNode(cur_node, max_node);
@@ -114,42 +119,79 @@ void AHE::update(char symbol)
             cur_node = cur_node->parent;
         }
     }
-
-    updateCodetable(root, ""); // 更新编码表
+    std::vector<bool> code;
+    updateCodetable(root, code); // 更新编码表
 }
 
-Node *AHE::getMaxIndexNode(uint frequency)
+// 将 vector<bool> 转换为 string
+std::string AHE::vectorBool2String(const std::vector<bool> &v)
+{
+    std::string res;
+    res.reserve(v.size()); // forward allocate memory
+    for (bool b : v)
+    {
+        res += b ? '1' : '0';
+    }
+    return res;
+}
+
+// 根， 右， 左
+// 获取权重相同，但位置最高的节点
+// 获取的节点不与 node 有祖先关系
+Node *AHE::getMaxIndexNode(Node *node)
 {
     std::queue<Node *> q;
     q.push(root);
     Node *max_node = nullptr;
     while (!q.empty())
     {
-        Node *node = q.front();
+        Node *cur_node = q.front();
         q.pop();
-        if (node->frequency == frequency)
+        if (cur_node->frequency == node->frequency)
         {
-            max_node = node; // 更新 max_node
-            break;           // 跳出循环
+            Node *node_parent = node->parent;
+            bool isAncestor = false;
+
+            // 判断当前节点是否是 node 的祖先节点, 如果是则继续遍历
+            while (node_parent != nullptr)
+            {
+                if (node_parent == cur_node)
+                {
+                    isAncestor = true;
+                    break;
+                }
+                node_parent = node_parent->parent;
+            }
+            if (isAncestor)
+            {
+                continue;
+            }
+            max_node = cur_node; // 更新 max_node
+            break;               // 跳出循环
         }
-        else if (node->frequency < frequency)
+
+        // 如果当前节点的频率小于 frequency，说明改节点的子树的频率也小于 frequency，不需要再遍历
+        else if (cur_node->frequency < node->frequency)
         {
             continue;
         }
-        if (node->right)
+        // 递归遍历左右子树，优先遍历右子树
+        if (cur_node->right)
         {
-            q.push(node->right);
+            q.push(cur_node->right);
         }
-        if (node->left)
+        if (cur_node->left)
         {
-            q.push(node->left);
+            q.push(cur_node->left);
         }
     }
     return max_node;
 }
 
+// 交换两个节点(节点父指针，并更新各自父指针的对应子树指针)
 void AHE::swapNode(Node *node1, Node *node2)
 {
+    // 由于 node1 和 node2 不可能是 root 节点，所以不需要判断 nodeX->parent 是否为 nullptr
     bool isLeft = node2->parent->left == node2;
 
     if (node1->parent->left == node1)
@@ -170,10 +212,11 @@ void AHE::swapNode(Node *node1, Node *node2)
         node2->parent->right = node1;
     }
 
-    std::swap(node1->parent, node2->parent);
+    std::swap(node1->parent, node2->parent); // 交换父指针
 }
 
-void AHE::updateCodetable(Node *node, const std::string &code)
+// 更新编码表
+void AHE::updateCodetable(Node *node, std::vector<bool> &code)
 {
     if (node->isLeaf())
     {
@@ -182,10 +225,14 @@ void AHE::updateCodetable(Node *node, const std::string &code)
     }
     if (node->left)
     {
-        updateCodetable(node->left, code + '0'); // 左子树编码为0
+        code.push_back(false);
+        updateCodetable(node->left, code); // 左子树编码为0
+        code.pop_back();
     }
     if (node->right)
     {
-        updateCodetable(node->right, code + '1'); // 右子树编码为1
+        code.push_back(true);
+        updateCodetable(node->right, code); // 右子树编码为1
+        code.pop_back();
     }
 }
