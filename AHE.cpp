@@ -2,6 +2,8 @@
 
 #include <iostream>
 #include <queue>
+#include <sstream>
+#include "terminal.h"
 
 AHE::AHE()
 {
@@ -18,6 +20,8 @@ AHE::AHE()
     //     }
     //     code_table[i] = code;
     // }
+    // escape_set.clear();
+    // escape_set = {'\0', '\a', '\b', '\t', '\n', '\v', '\f', '\r', '\"', '\'', '\\', '\?'};
 }
 
 AHE::~AHE()
@@ -38,16 +42,171 @@ void AHE::deleteTree(Node *node)
     node = nullptr;
 }
 
+// 1 ~ 3999
+std::string AHE::int2Roman(int num)
+{
+    std::vector<std::pair<int, std::string>> roman = {
+        {1000, "M"}, {900, "CM"}, {500, "D"}, {400, "CD"}, {100, "C"}, {90, "XC"}, {50, "L"}, {40, "XL"}, {10, "X"}, {9, "IX"}, {5, "V"}, {4, "IV"}, {1, "I"}};
+
+    std::string result;
+    for (auto &value : roman)
+    {
+        while (num >= value.first)
+        {
+            num -= value.first;
+            result += value.second;
+        }
+    }
+    return result;
+}
+
+// void AHE::printEscape_char(char ch, std::stringstream &ss)
+// {
+//     switch (ch)
+//     {
+//     case '\0':
+//         ss << "'\\0', ";
+//         break;
+//     case '\a':
+//         ss << "'\\a', ";
+//         break;
+//     case '\b':
+//         ss << "'\\b', ";
+//         break;
+//     case '\t':
+//         ss << "'\\t', ";
+//         break;
+//     case '\n':
+//         ss << "'\\n', ";
+//         break;
+//     case '\v':
+//         ss << "'\\v', ";
+//         break;
+//     case '\f':
+//         ss << "'\\f', ";
+//         break;
+//     case '\r':
+//         ss << "'\\r', ";
+//         break;
+//     case '\"':
+//         ss << "'\\\"', ";
+//         break;
+//     case '\'':
+//         ss << "'\\'', ";
+//         break;
+//     case '\\':
+//         ss << "'\\\\', ";
+//         break;
+//     case '\?':
+//         ss << "'\\?', ";
+//         break;
+
+//     default:
+//         ss << ch << ", ";
+//         break;
+//     }
+// }
+
+void AHE::showTree()
+{
+    static int index = 0;
+
+    if (root == nullptr)
+        return;
+    std::queue<Node *> q;
+    q.push(root);
+    int depth = 0;
+    while (!q.empty())
+    {
+        int level_size = q.size();
+        std::stringstream ss;
+        ss << "[" << index << " - " << depth++ << "]: ";
+
+        for (int i = 0; i < level_size; i++)
+        {
+            Node *cur_node = q.front();
+            q.pop();
+
+            if (!cur_node)
+                ss << "null, ";
+
+            else
+            {
+                if (cur_node->symbol == -1)
+                {
+                    if (cur_node->isLeaf())
+                        ss << "NYT, ";
+                    else
+                        ss << int2Roman(cur_node->frequency) << ", ";
+                }
+                else
+                    // printEscape_char(cur_node->symbol, ss);
+                    ss << cur_node->symbol << ", ";
+
+                if (cur_node->left)
+                    q.push(cur_node->left);
+                else
+                    q.push(nullptr);
+
+                if (cur_node->right)
+                    q.push(cur_node->right);
+                else
+                    q.push(nullptr);
+            }
+        }
+
+        std::string line = ss.str();
+        line = line.substr(0, line.size() - 2);
+        terminal::setColor(terminal::Color::Yellow);
+        std::cout << line << std::endl;
+        terminal::setColor(terminal::Color::Green);
+        std::cout << std::string(line.size(), '-') << std::endl;
+    }
+
+    index++;
+}
+
+// void AHE::printTree(Node *node, int depth)
+// {
+//     if (node == nullptr)
+//         return;
+//     printTree(node->left, depth + 1);
+
+//     terminal::setCursor(depth * 2 + 1, 1);
+//     if (node->symbol == -1)
+//     {
+//         if (node->isLeaf())
+//         {
+//             terminal::setColor(terminal::Color::LightGrey, false);
+//             std::cout << " " << std::endl;
+//         }
+//         else
+//         {
+//             terminal::setColor(terminal::Color::LightYellow);
+//             std::cout << node->frequency << std::endl;
+//         }
+//     }
+//     else
+//     {
+//         terminal::setColor(terminal::Color::Green);
+//         std::cout << node->symbol << std::endl;
+//     }
+//     terminal::setCursor(depth * 2, 2);
+
+//     printTree(node->right, depth + 1);
+// }
+
 // 编码入口
 void AHE::encode(const std::string &input)
 {
+    // terminal::setCursor(1, 1);
+    system("cls"); // clear screen
+
     std::string ret = "";
     for (const char symbol : input)
     {
         if (code_table.find(symbol) != code_table.end())
-        {
             ret += vectorBool2String(code_table[symbol]);
-        }
         else
         {
             std::string code = vectorBool2String(code_table[NYT_SYMBOL]);
@@ -60,8 +219,18 @@ void AHE::encode(const std::string &input)
             ret += code;
         }
         ret += ' '; // split each code with a space
+
+        showTree();
+
+        // terminal::setCursor(1, 1);
+        // printTree(root);
+        // terminal::reset();
+
         update(symbol);
     }
+
+    showTree();
+    terminal::reset();
 
     std::cout << ret << std::endl;
 }
@@ -89,9 +258,8 @@ void AHE::update(const char symbol)
             Node *max_node = getMaxIndexNode(cur_node);
             // max_node 不可能为根节点 root
             if (cur_node != max_node)
-            {
                 swapNode(cur_node, max_node);
-            }
+
             cur_node->frequency++;
             cur_node = cur_node->parent;
         }
@@ -113,9 +281,8 @@ void AHE::update(const char symbol)
         {
             Node *max_node = getMaxIndexNode(cur_node);
             if (cur_node != max_node)
-            {
                 swapNode(cur_node, max_node);
-            }
+
             cur_node->frequency++;
             cur_node = cur_node->parent;
         }
@@ -159,18 +326,14 @@ Node *AHE::getMaxIndexNode(Node *node)
 
         // 如果当前节点的频率小于 frequency，说明改节点的子树的频率也小于 frequency，不需要再遍历
         else if (cur_node->frequency < node->frequency)
-        {
             continue;
-        }
+
         // 递归遍历左右子树，优先遍历右子树
         if (cur_node->right)
-        {
             q.push(cur_node->right);
-        }
+
         if (cur_node->left)
-        {
             q.push(cur_node->left);
-        }
     }
     return max_node;
 }
@@ -182,22 +345,14 @@ void AHE::swapNode(Node *node1, Node *node2)
     bool isLeft = node2->parent->left == node2;
 
     if (node1->parent->left == node1)
-    {
         node1->parent->left = node2;
-    }
     else
-    {
         node1->parent->right = node2;
-    }
 
     if (isLeft)
-    {
         node2->parent->left = node1;
-    }
     else
-    {
         node2->parent->right = node1;
-    }
 
     std::swap(node1->parent, node2->parent); // 交换父指针
 }

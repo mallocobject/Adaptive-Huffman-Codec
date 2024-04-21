@@ -55,7 +55,13 @@
         "format": "cpp",
         "iomanip": "cpp",
         "span": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "queue": "cpp",
+        "condition_variable": "cpp",
+        "mutex": "cpp",
+        "semaphore": "cpp",
+        "stop_token": "cpp",
+        "thread": "cpp"
     },
     "C_Cpp.default.compilerPath": "D:\\mingw-w64\\msys\\mingw64\\bin\\g++.exe"
 }

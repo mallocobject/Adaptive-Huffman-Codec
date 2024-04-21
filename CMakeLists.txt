@@ -6,4 +6,6 @@ set(CMAKE_CXX_STANDARD 17)
 
 # add_subdirectory(src)
 
-add_executable(AHE main.cpp AHE.cpp)
+aux_source_directory(. DIR_SRCS)
+
+add_executable(AHE ${DIR_SRCS})

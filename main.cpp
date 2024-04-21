@@ -2,29 +2,41 @@
 #include <iostream>
 #include <chrono>
 #include <random>
-
-// 生成[min, max]范围内的随机数
-int generateRandomNumber(int min, int max)
-{
-    // 使用当前时间作为种子
-    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
-    static std::mt19937 gen(seed);                    // 生成器
-    std::uniform_int_distribution<int> dis(min, max); // 均匀分布
-    return dis(gen);                                  // 返回生成的随机数
-}
+#include "utils.h"
 
 int main()
 {
     std::cout << "Hello, World!" << std::endl;
     AHE ahe;
 
+    // "\0\a\b\t\n\v\f\r\"\'\\?"
+    // ahe.encode(R"(\0\a\b\t\n\v\f\r\"\'\\?)");
+
     // 生成随机字符串(for test only)
-    for (int i = 0; i < 10000; i++)
+    for (int i = 0; i < 1; i++)
     {
         std::string input;
-        for (int j = 0; j < 100; j++)
+        for (int j = 0; j < 10; j++)
         {
-            input += (char)generateRandomNumber(0, 127);
+            char ch = utils::generateRandomNumber(0, 127); // generate 0-127 ASCII characters
+
+            // avoid escape characters
+            while (ch == '\0' ||
+                   ch == '\a' ||
+                   ch == '\b' ||
+                   ch == '\t' ||
+                   ch == '\n' ||
+                   ch == '\v' ||
+                   ch == '\f' ||
+                   ch == '\r' ||
+                   ch == '\"' ||
+                   ch == '\'' ||
+                   ch == '\\' ||
+                   ch == '\?')
+            {
+                ch = utils::generateRandomNumber(0, 127);
+            }
+            input += ch;
         }
         ahe.encode(input);
     }
