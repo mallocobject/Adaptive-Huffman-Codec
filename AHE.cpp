@@ -136,7 +136,7 @@ std::string AHE::vectorBool2String(const std::vector<bool> &v)
     return res;
 }
 
-// BFS (广度优先搜索)
+// BFS(广度优先搜索)
 // 根， 右， 左
 // 保证权重相同的节点中位置最高的节点优先遍历
 // 获取的节点不与 node 有祖先关系
