@@ -35,6 +35,7 @@ void AHE::deleteTree(Node *node)
     deleteTree(node->right);
 
     delete node;
+    node = nullptr;
 }
 
 // 编码入口
