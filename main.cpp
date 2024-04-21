@@ -21,14 +21,7 @@ int main()
         std::string input;
         for (int j = 0; j < 10; j++)
         {
-            char ch = utils::generateRandomNumber(0, 127); // generate 0-127 ASCII characters
-
-            // avoid control characters
-            while (ch <= 31 || ch == 127)
-            {
-                ch = utils::generateRandomNumber(0, 127);
-            }
-            input += ch;
+            input += utils::generateRandomNumber(31, 126); // 31-126
         }
         ahe.encode(input);
     }
