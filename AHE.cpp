@@ -3,13 +3,14 @@
 #include <iostream>
 #include <queue>
 #include <sstream>
+#include <algorithm>
 #include "terminal.h"
 
 AHE::AHE()
 {
     root = new Node(-1, 0);
     NYT = root;
-    code_table.clear();
+    // code_table.clear();
     // code_table[NYT_SYMBOL] = "";
     // for (int i = 0; i < 128; i++)
     // {
@@ -167,6 +168,31 @@ void AHE::showTree()
     index++;
 }
 
+Node *AHE::findSymbol(Node *node, char symbol, std::string &code)
+{
+    if (node == nullptr)
+        return nullptr;
+    else if (node->isLeaf() && node->symbol == symbol)
+        return node;
+    else
+    {
+        Node *foundNode = findSymbol(node->left, symbol, code);
+        if (foundNode != nullptr)
+        {
+            code += '0';
+            return foundNode;
+        }
+
+        foundNode = findSymbol(node->right, symbol, code);
+        if (foundNode != nullptr)
+        {
+            code += '1';
+            return foundNode;
+        }
+    }
+    return nullptr;
+}
+
 // void AHE::printTree(Node *node, int depth)
 // {
 //     if (node == nullptr)
@@ -206,11 +232,24 @@ void AHE::encode(const std::string &input)
     std::string ret = "";
     for (const char symbol : input)
     {
-        if (code_table.find(symbol) != code_table.end())
-            ret += vectorBool2String(code_table[symbol]);
+        // if (code_table.find(symbol) != code_table.end())
+        //     ret += vectorBool2String(code_table[symbol]);
+
+        // bool isFind = false;
+        std::string code = "";
+        Node *isFind = findSymbol(root, symbol, code);
+        if (isFind != nullptr)
+        {
+            std::reverse(code.begin(), code.end());
+            ret += code;
+            // isFind = true;
+        }
         else
         {
-            std::string code = vectorBool2String(code_table[NYT_SYMBOL]);
+            // std::string code = vectorBool2String(code_table[NYT_SYMBOL]);
+            std::string code = "";
+            findSymbol(root, NYT_SYMBOL, code);
+            std::reverse(code.begin(), code.end());
 
             // 7 bits standard ASCII code
             for (int j = 6; j >= 0; j--)
@@ -227,35 +266,24 @@ void AHE::encode(const std::string &input)
         // printTree(root);
         // terminal::reset();
 
-        update(symbol);
+        update(symbol, isFind);
     }
 
     showTree();
     terminal::reset();
 
-    for (char c : input)
-    {
-        std::cout << c << " ";
-    }
-    std::cout << input.size() << std::endl;
+    std::cout << input << "->" << input.size() << std::endl;
     std::cout << ret << std::endl;
 }
 
 // 动态调整树结构，保持树的平衡
-void AHE::update(const char symbol)
+void AHE::update(const char symbol, Node *isFind)
 {
     // std::cout << "Hello, World!" << std::endl;
     Node *node = nullptr;
-    if (code_table.find(symbol) != code_table.end())
+    if (isFind)
     {
-        node = root;
-        while (!node->isLeaf())
-        {
-            for (int i = 0; i < code_table[symbol].size(); i++)
-            {
-                node = code_table[symbol][i] == false ? node->left : node->right;
-            }
-        }
+        node = isFind;
 
         // 判断该叶子节点是否需要交换
         Node *cur_node = node;
@@ -293,21 +321,21 @@ void AHE::update(const char symbol)
             cur_node = cur_node->parent;
         }
     }
-    std::vector<bool> code;
-    updateCodetable(root, code); // 更新编码表
+    // std::vector<bool> code;
+    // updateCodetable(root, code); // 更新编码表
 }
 
 // 将 vector<bool> 转换为 string
-std::string AHE::vectorBool2String(const std::vector<bool> &v)
-{
-    std::string res;
-    res.reserve(v.size()); // forward allocate memory
-    for (bool b : v)
-    {
-        res += b ? '1' : '0';
-    }
-    return res;
-}
+// std::string AHE::vectorBool2String(const std::vector<bool> &v)
+// {
+//     std::string res;
+//     res.reserve(v.size()); // forward allocate memory
+//     for (bool b : v)
+//     {
+//         res += b ? '1' : '0';
+//     }
+//     return res;
+// }
 
 // BFS(广度优先搜索)
 // 根， 右， 左
@@ -364,23 +392,23 @@ void AHE::swapNode(Node *node1, Node *node2)
 }
 
 // 更新编码表
-void AHE::updateCodetable(Node *node, std::vector<bool> &code)
-{
-    if (node->isLeaf())
-    {
-        code_table[node->symbol] = code;
-        return;
-    }
-    if (node->left)
-    {
-        code.push_back(false);
-        updateCodetable(node->left, code); // 左子树编码为0
-        code.pop_back();
-    }
-    if (node->right)
-    {
-        code.push_back(true);
-        updateCodetable(node->right, code); // 右子树编码为1
-        code.pop_back();
-    }
-}
+// void AHE::updateCodetable(Node *node, std::vector<bool> &code)
+// {
+//     if (node->isLeaf())
+//     {
+//         code_table[node->symbol] = code;
+//         return;
+//     }
+//     if (node->left)
+//     {
+//         code.push_back(false);
+//         updateCodetable(node->left, code); // 左子树编码为0
+//         code.pop_back();
+//     }
+//     if (node->right)
+//     {
+//         code.push_back(true);
+//         updateCodetable(node->right, code); // 右子树编码为1
+//         code.pop_back();
+//     }
+// }
