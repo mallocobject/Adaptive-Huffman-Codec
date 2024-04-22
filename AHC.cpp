@@ -1,4 +1,4 @@
-#include "AHE.h"
+#include "AHC.h"
 
 #include <iostream>
 #include <queue>
@@ -6,32 +6,32 @@
 #include <algorithm>
 #include "terminal.h"
 
-AHE::AHE()
+AHC::AHC()
 {
-    root = new Node(-1, 0);
-    NYT = root;
-    // code_table.clear();
-    // code_table[NYT_SYMBOL] = "";
-    // for (int i = 0; i < 128; i++)
-    // {
-    //     std::string code = "";
-    //     for (int j = 6; j >= 0; j--)
-    //     {
-    //         code += ((i >> j) & 1) ? '1' : '0';
-    //     }
-    //     code_table[i] = code;
-    // }
-    // escape_set.clear();
-    // escape_set = {'\0', '\a', '\b', '\t', '\n', '\v', '\f', '\r', '\"', '\'', '\\', '\?'};
+    initEncodeTree();
+    initDecodeTree();
 }
 
-AHE::~AHE()
+AHC::~AHC()
 {
-    deleteTree(root);
+    deleteTree(encode_root);
+    deleteTree(decode_root);
+}
+
+void AHC::initEncodeTree()
+{
+    encode_root = new Node(-1, 0);
+    encode_NYT = encode_root;
+}
+
+void AHC::initDecodeTree()
+{
+    decode_root = new Node(-1, 0);
+    decode_NYT = decode_root;
 }
 
 // 递归删除树
-void AHE::deleteTree(Node *node)
+void AHC::deleteTree(Node *node)
 {
     if (node == nullptr)
         return;
@@ -44,7 +44,7 @@ void AHE::deleteTree(Node *node)
 }
 
 // 1 ~ 3999
-std::string AHE::int2Roman(int num)
+std::string AHC::int2Roman(int num)
 {
     std::vector<std::pair<int, std::string>> roman = {
         {1000, "M"}, {900, "CM"}, {500, "D"}, {400, "CD"}, {100, "C"}, {90, "XC"}, {50, "L"}, {40, "XL"}, {10, "X"}, {9, "IX"}, {5, "V"}, {4, "IV"}, {1, "I"}};
@@ -61,7 +61,7 @@ std::string AHE::int2Roman(int num)
     return result;
 }
 
-// void AHE::printEscape_char(char ch, std::stringstream &ss)
+// void AHC::printEscape_char(char ch, std::stringstream &ss)
 // {
 //     switch (ch)
 //     {
@@ -109,14 +109,14 @@ std::string AHE::int2Roman(int num)
 // }
 
 // show tree structure
-void AHE::showTree()
+void AHC::showTree()
 {
     static int index = 0;
 
-    if (root == nullptr)
+    if (encode_root == nullptr)
         return;
     std::queue<Node *> q;
-    q.push(root);
+    q.push(encode_root);
     int depth = 0;
     while (!q.empty())
     {
@@ -168,7 +168,7 @@ void AHE::showTree()
     index++;
 }
 
-Node *AHE::findSymbol(Node *node, char symbol, std::string &code)
+Node *AHC::findSymbol(Node *node, char symbol, std::string &code)
 {
     if (node == nullptr)
         return nullptr;
@@ -193,7 +193,24 @@ Node *AHE::findSymbol(Node *node, char symbol, std::string &code)
     return nullptr;
 }
 
-// void AHE::printTree(Node *node, int depth)
+Node *AHC::findCode(Node *node, const std::string &code, int &depth)
+{
+    if (node == nullptr)
+        return nullptr;
+    else if (node->isLeaf())
+        return node;
+    else
+    {
+        depth++;
+        if (code[0] == '0')
+            return findCode(node->left, code.substr(1), depth);
+        else
+            return findCode(node->right, code.substr(1), depth);
+    }
+    return nullptr;
+}
+
+// void AHC::printTree(Node *node, int depth)
 // {
 //     if (node == nullptr)
 //         return;
@@ -224,10 +241,10 @@ Node *AHE::findSymbol(Node *node, char symbol, std::string &code)
 // }
 
 // 编码入口
-void AHE::encode(const std::string &input)
+std::string AHC::encode(const std::string &input)
 {
     // terminal::setCursor(1, 1);
-    system("cls"); // clear screen
+    // system("cls"); // clear screen
 
     std::string ret = "";
     for (const char symbol : input)
@@ -237,7 +254,7 @@ void AHE::encode(const std::string &input)
 
         // bool isFind = false;
         std::string code = "";
-        Node *isFind = findSymbol(root, symbol, code);
+        Node *isFind = findSymbol(encode_root, symbol, code);
         if (isFind != nullptr)
         {
             std::reverse(code.begin(), code.end());
@@ -248,7 +265,7 @@ void AHE::encode(const std::string &input)
         {
             // std::string code = vectorBool2String(code_table[NYT_SYMBOL]);
             std::string code = "";
-            findSymbol(root, NYT_SYMBOL, code);
+            findSymbol(encode_root, NYT_SYMBOL, code);
             std::reverse(code.begin(), code.end());
 
             // 7 bits standard ASCII code
@@ -258,26 +275,62 @@ void AHE::encode(const std::string &input)
             }
             ret += code;
         }
+
         ret += ' '; // split each code with a space
 
-        showTree();
+        // showTree(); // show tree structure
 
         // terminal::setCursor(1, 1);
         // printTree(root);
         // terminal::reset();
 
-        update(symbol, isFind);
+        update(symbol, isFind, true);
     }
 
-    showTree();
+    // showTree(); // show the final tree structure
     terminal::reset();
 
-    std::cout << input << "->" << input.size() << std::endl;
-    std::cout << ret << std::endl;
+    // std::cout << input << "->" << input.size() << std::endl;
+    // std::cout << ret << std::endl;
+
+    // remove all spaces
+    ret.erase(std::remove(ret.begin(), ret.end(), ' '), ret.end());
+    return ret;
+}
+
+std::string AHC::decode(std::string input)
+{
+    std::string ret = "";
+    while (!input.empty())
+    {
+        int depth = 0;
+        Node *node = findCode(decode_root, input, depth);
+        if (node->symbol == NYT_SYMBOL)
+        {
+            input = input.substr(depth); // remove the code of NYT_SYMBOL from input
+            char symbol = 0;
+            for (int i = 0; i < 7; i++)
+            {
+                symbol = (symbol << 1) + (input[i] - '0');
+            }
+            ret += symbol;
+            input = input.substr(7);
+            update(symbol, nullptr, false);
+        }
+        else
+        {
+            ret += node->symbol;
+            update(node->symbol, node, false);
+            input = input.substr(depth);
+        }
+    }
+
+    // std::cout << ret << std::endl;
+    return ret;
 }
 
 // 动态调整树结构，保持树的平衡
-void AHE::update(const char symbol, Node *isFind)
+void AHC::update(const char symbol, Node *isFind, bool isEncode)
 {
     // std::cout << "Hello, World!" << std::endl;
     Node *node = nullptr;
@@ -289,7 +342,7 @@ void AHE::update(const char symbol, Node *isFind)
         Node *cur_node = node;
         while (cur_node != nullptr)
         {
-            Node *max_node = getMaxIndexNode(cur_node);
+            Node *max_node = getMaxIndexNode(cur_node, isEncode);
             // max_node 不可能为根节点 root
             if (cur_node != max_node)
                 swapNode(cur_node, max_node);
@@ -300,6 +353,11 @@ void AHE::update(const char symbol, Node *isFind)
     }
     else
     {
+        Node *NYT = nullptr;
+        if (isEncode)
+            NYT = encode_NYT;
+        else
+            NYT = decode_NYT;
         Node *new_node = new Node(symbol, 1, nullptr, nullptr, NYT);
         NYT->right = new_node;
         NYT->left = new Node(NYT_SYMBOL, 0, nullptr, nullptr, NYT);
@@ -313,7 +371,7 @@ void AHE::update(const char symbol, Node *isFind)
         Node *cur_node = node;
         while (cur_node != nullptr)
         {
-            Node *max_node = getMaxIndexNode(cur_node);
+            Node *max_node = getMaxIndexNode(cur_node, isEncode);
             if (cur_node != max_node)
                 swapNode(cur_node, max_node);
 
@@ -326,7 +384,7 @@ void AHE::update(const char symbol, Node *isFind)
 }
 
 // 将 vector<bool> 转换为 string
-// std::string AHE::vectorBool2String(const std::vector<bool> &v)
+// std::string AHC::vectorBool2String(const std::vector<bool> &v)
 // {
 //     std::string res;
 //     res.reserve(v.size()); // forward allocate memory
@@ -341,10 +399,13 @@ void AHE::update(const char symbol, Node *isFind)
 // 根， 右， 左
 // 保证权重相同的节点中位置最高的节点优先遍历
 // 获取的节点不与 node 有祖先关系
-Node *AHE::getMaxIndexNode(Node *node)
+Node *AHC::getMaxIndexNode(Node *node, bool isEncode)
 {
     std::queue<Node *> q;
-    q.push(root);
+    if (isEncode)
+        q.push(encode_root);
+    else
+        q.push(decode_root);
     Node *max_node = nullptr;
     while (!q.empty())
     {
@@ -373,7 +434,7 @@ Node *AHE::getMaxIndexNode(Node *node)
 }
 
 // 交换两个节点(节点父指针，并更新各自父指针的对应子树指针)
-void AHE::swapNode(Node *node1, Node *node2)
+void AHC::swapNode(Node *node1, Node *node2)
 {
     // 由于 node1 和 node2 不可能是 root 节点，所以不需要判断 nodeX->parent 是否为 nullptr
     bool isLeft = node2->parent->left == node2;
@@ -392,7 +453,7 @@ void AHE::swapNode(Node *node1, Node *node2)
 }
 
 // 更新编码表
-// void AHE::updateCodetable(Node *node, std::vector<bool> &code)
+// void AHC::updateCodetable(Node *node, std::vector<bool> &code)
 // {
 //     if (node->isLeaf())
 //     {

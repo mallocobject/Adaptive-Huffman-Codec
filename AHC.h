@@ -23,17 +23,20 @@ struct Node
     bool isLeaf() const { return left == nullptr && right == nullptr; }
 };
 
-class AHE
+class AHC
 {
 public:
-    AHE();
-    ~AHE();
-    void encode(const std::string &input);
+    AHC();
+    ~AHC();
+    std::string encode(const std::string &input);
+    std::string decode(std::string input);
 
 private:
-    void update(const char symbol, Node *isFind);
+    void initEncodeTree();
+    void initDecodeTree();
+    void update(const char symbol, Node *isFind, bool isEncode = true);
     // std::string vectorBool2String(const std::vector<bool> &v);
-    Node *getMaxIndexNode(Node *node);
+    Node *getMaxIndexNode(Node *node, bool isEncode = true);
     void swapNode(Node *node1, Node *node2);
     // void updateCodetable(Node *node, std::vector<bool> &code);
     void deleteTree(Node *node);
@@ -42,10 +45,13 @@ private:
     // void printEscape_char(char ch, std::stringstream &ss);
     void showTree();
     Node *findSymbol(Node *node, char symbol, std::string &code);
+    Node *findCode(Node *node, const std::string &code, int &depth);
 
 private:
-    Node *root;
-    Node *NYT;
+    Node *encode_root;
+    Node *decode_root;
+    Node *encode_NYT;
+    Node *decode_NYT;
     // std::unordered_map<char, std::string> code_table;
     // std::unordered_map<char, std::vector<bool>> code_table;
     // std::unordered_set<char> escape_set;
