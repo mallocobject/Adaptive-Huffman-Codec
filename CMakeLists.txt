@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(AHE)
+project(AHC)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -8,4 +8,4 @@ set(CMAKE_CXX_STANDARD 17)
 
 aux_source_directory(. DIR_SRCS)
 
-add_executable(AHE ${DIR_SRCS})
+add_executable(AHC ${DIR_SRCS})

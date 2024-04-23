@@ -8,8 +8,8 @@
 
 AHC::AHC()
 {
-    initEncodeTree();
-    initDecodeTree();
+    // initEncodeTree();
+    // initDecodeTree();
 }
 
 AHC::~AHC()
@@ -243,31 +243,22 @@ Node *AHC::findCode(Node *node, const std::string &code, int &depth)
 // 编码入口
 std::string AHC::encode(const std::string &input)
 {
-    // terminal::setCursor(1, 1);
-    // system("cls"); // clear screen
-
+    initEncodeTree();
     std::string ret = "";
     for (const char symbol : input)
     {
-        // if (code_table.find(symbol) != code_table.end())
-        //     ret += vectorBool2String(code_table[symbol]);
-
-        // bool isFind = false;
         std::string code = "";
         Node *isFind = findSymbol(encode_root, symbol, code);
         if (isFind != nullptr)
         {
             std::reverse(code.begin(), code.end());
             ret += code;
-            // isFind = true;
         }
         else
         {
-            // std::string code = vectorBool2String(code_table[NYT_SYMBOL]);
             std::string code = "";
             findSymbol(encode_root, NYT_SYMBOL, code);
             std::reverse(code.begin(), code.end());
-
             // 7 bits standard ASCII code
             for (int j = 6; j >= 0; j--)
             {
@@ -275,31 +266,24 @@ std::string AHC::encode(const std::string &input)
             }
             ret += code;
         }
-
-        ret += ' '; // split each code with a space
-
+        // ret += ' '; // split each code with a space
         // showTree(); // show tree structure
-
-        // terminal::setCursor(1, 1);
-        // printTree(root);
-        // terminal::reset();
-
         update(symbol, isFind, true);
     }
 
+    // std::cout << input << std::endl;
+    std::cout << ret << std::endl;
+
     // showTree(); // show the final tree structure
-    terminal::reset();
-
-    // std::cout << input << "->" << input.size() << std::endl;
-    // std::cout << ret << std::endl;
-
-    // remove all spaces
-    ret.erase(std::remove(ret.begin(), ret.end(), ' '), ret.end());
+    // terminal::reset();
+    // ret.erase(std::remove(ret.begin(), ret.end(), ' '), ret.end()); // remove all spaces
+    deleteTree(encode_root);
     return ret;
 }
 
 std::string AHC::decode(std::string input)
 {
+    initDecodeTree();
     std::string ret = "";
     while (!input.empty())
     {
@@ -325,16 +309,16 @@ std::string AHC::decode(std::string input)
         }
     }
 
-    // std::cout << ret << std::endl;
+    std::cout << ret << std::endl;
+    deleteTree(decode_root);
     return ret;
 }
 
 // 动态调整树结构，保持树的平衡
 void AHC::update(const char symbol, Node *isFind, bool isEncode)
 {
-    // std::cout << "Hello, World!" << std::endl;
     Node *node = nullptr;
-    if (isFind)
+    if (isFind != nullptr)
     {
         node = isFind;
 
@@ -353,20 +337,26 @@ void AHC::update(const char symbol, Node *isFind, bool isEncode)
     }
     else
     {
-        Node *NYT = nullptr;
+        Node *new_node = nullptr;
         if (isEncode)
-            NYT = encode_NYT;
+        {
+            new_node = new Node(symbol, 1, nullptr, nullptr, encode_NYT);
+            encode_NYT->right = new_node;
+            encode_NYT->left = new Node(NYT_SYMBOL, 0, nullptr, nullptr, encode_NYT);
+            encode_NYT = encode_NYT->left;
+        }
         else
-            NYT = decode_NYT;
-        Node *new_node = new Node(symbol, 1, nullptr, nullptr, NYT);
-        NYT->right = new_node;
-        NYT->left = new Node(NYT_SYMBOL, 0, nullptr, nullptr, NYT);
-        NYT = NYT->left;
+        {
+            new_node = new Node(symbol, 1, nullptr, nullptr, decode_NYT);
+            decode_NYT->right = new_node;
+            decode_NYT->left = new Node(NYT_SYMBOL, 0, nullptr, nullptr, decode_NYT);
+            decode_NYT = decode_NYT->left;
+        }
 
         new_node->parent->frequency++;
 
         // 判断该子树的父节点是否需要交换
-        node = NYT->parent->parent;
+        node = new_node->parent->parent;
 
         Node *cur_node = node;
         while (cur_node != nullptr)
@@ -379,8 +369,6 @@ void AHC::update(const char symbol, Node *isFind, bool isEncode)
             cur_node = cur_node->parent;
         }
     }
-    // std::vector<bool> code;
-    // updateCodetable(root, code); // 更新编码表
 }
 
 // 将 vector<bool> 转换为 string
@@ -411,15 +399,11 @@ Node *AHC::getMaxIndexNode(Node *node, bool isEncode)
     {
         Node *cur_node = q.front();
         q.pop();
-
-        // 如果当前节点的频率等于 frequency，且不是 node 的祖先节点(即不与 node 有父子关系)
         if (cur_node->frequency == node->frequency && cur_node != node->parent)
         {
             max_node = cur_node; // 更新 max_node
             break;               // 跳出循环
         }
-
-        // 如果当前节点的频率小于 frequency，说明改节点的子树的频率也小于 frequency，不需要再遍历
         else if (cur_node->frequency < node->frequency)
             continue;
 

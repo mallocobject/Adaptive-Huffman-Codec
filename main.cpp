@@ -3,55 +3,50 @@
 #include <chrono>
 #include <random>
 #include <string>
+#include <fstream>
+#include <thread>
 #include "utils.h"
+
+void read2files(int index, int start, int end)
+{
+    std::string filename = "../output/output_" + std::to_string(index) + ".txt";
+    std::ofstream out(filename);
+    for (int k = start; k <= end; k++)
+    {
+        for (int i = 1; i <= 1000; i++)
+        {
+            AHC ahc;
+            std::string input = "";
+            for (int j = 0; j < i; j++)
+            {
+                input += (char)utils::generateRandomNumber(31, 31 + k); // 31-126
+            }
+            std::string encode_ret = ahc.encode(input);
+            out << 7 * input.size() << "," << encode_ret.size() << std::endl;
+        }
+    }
+    out.close();
+}
 
 int main()
 {
-    // std::cout << '?' << std::endl;
-    AHC ahe;
-    // char c = 31;
-    // std::cout << c << std::endl;
-    // ahe.encode("?aabbbacc");
+    // std::vector<std::thread> threads;
+    // int index = 0;
+    // for (int i = 0; i < 90; i += 10)
+    // {
+    //     threads.emplace_back(std::thread(read2files, index, i, i + 9));
+    //     index++;
+    // }
 
-    // "\0\a\b\t\n\v\f\r\"\'\\?"
-    // ahe.encode(R"(\0\a\b\t\n\v\f\r\"\'\\?)");
+    // for (auto &t : threads)
+    // {
+    //     t.join();
+    // }
 
-    // 生成随机字符串(for test only)
-    int cnt = 0;
-    for (int i = 0; i < 1000; i++)
-    {
-        std::string input;
-        for (int j = 0; j < 100; j++)
-        {
-            input += utils::generateRandomNumber(31, 126); // 31-126
-        }
-        // std::string ret = ahe.decode(ahe.encode(input));
-        std::string encode_ret = ahe.encode(input);
-        // std::cout << "encode_ret: " << encode_ret << std::endl;
-        std::string decode_ret = ahe.decode(encode_ret);
-        if (input != decode_ret)
-        {
-            std::cout << "input: " << input << std::endl;
-            std::cout << "decode_ret: " << decode_ret << std::endl;
-            cnt++;
-        }
-        else
-        {
-            std::cout << "encode and decode successfully!" << std::endl;
-        }
-    }
-    std::cout << "cnt: " << cnt << std::endl;
-    // std::cout << "input: " << input << std::endl;
-    // std::cout << "output: ";
-    // ahe.encode(input);
-    // ahe.encode("aabbbacc");
-    // std::string encode_ret = ahe.encode("aabbbacc");
-    // std::cout << "encode_ret: " << encode_ret << std::endl;
-    // std::string decode_ret = ahe.decode(encode_ret);
-    // std::cout << "Please input a string: ";
-    // std::string input;
-    // std::getline(std::cin, input);
-    // ahe.encode(input);
-    system("pause");
+    AHC ahc;
+    std::string input = "asdadad";
+    std::string encode_ret = ahc.encode(input);
+    std::string decode_ret = ahc.decode(encode_ret);
+
     return 0;
 }
