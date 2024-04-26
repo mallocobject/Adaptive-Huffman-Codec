@@ -2,7 +2,7 @@
 
 // #include <unordered_map>
 #include <string>
-// #include <vector>
+#include <vector>
 // #include <unordered_set>
 
 using uint = unsigned int;
@@ -39,13 +39,15 @@ private:
     Node *getMaxIndexNode(Node *node, bool isEncode = true);
     void swapNode(Node *node1, Node *node2);
     // void updateCodetable(Node *node, std::vector<bool> &code);
-    void deleteTree(Node *node);
+    void deleteTree(Node *&node);
     // void printTree(Node *node, int depth = 0);
     std::string int2Roman(int num);
     // void printEscape_char(char ch, std::stringstream &ss);
     void showTree();
     Node *findSymbol(Node *node, char symbol, std::string &code);
     Node *findCode(Node *node, const std::string &code, int &depth);
+    void middleOrderTree(Node *node, std::vector<std::pair<std::pair<Node *, Node *>, std::string>> &v);
+    void outputTree(std::vector<std::pair<std::pair<Node *, Node *>, std::string>> &v);
 
 private:
     Node *encode_root;

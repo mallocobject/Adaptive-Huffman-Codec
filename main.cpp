@@ -5,6 +5,7 @@
 #include <string>
 #include <fstream>
 #include <thread>
+#include <windows.h>
 #include "utils.h"
 
 void read2files(int index, int start, int end)
@@ -44,9 +45,27 @@ int main()
     // }
 
     AHC ahc;
-    std::string input = "asdadad";
+    std::string input = "";
+    std::cout << "Please input a string: ";
+    std::getline(std::cin, input);
     std::string encode_ret = ahc.encode(input);
-    std::string decode_ret = ahc.decode(encode_ret);
+    std::cout << "encode: " << encode_ret << std::endl;
 
+    // int msgboxID = MessageBoxA(
+    //     NULL,
+    //     "Do you want to decode?",
+    //     "Decode Confirmation",
+    //     MB_ICONQUESTION | MB_YESNO);
+
+    // if (msgboxID == IDYES)
+    // {
+    //     std::string decode_ret = ahc.decode(encode_ret);
+    //     std::cout << "decode: " << decode_ret << std::endl;
+    // }
+
+    std::string decode_ret = ahc.decode(encode_ret);
+    std::cout << "decode: " << decode_ret << std::endl;
+
+    system("pause");
     return 0;
 }

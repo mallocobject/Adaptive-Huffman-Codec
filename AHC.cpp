@@ -4,6 +4,8 @@
 #include <queue>
 #include <sstream>
 #include <algorithm>
+#include <fstream>
+#include <unordered_map>
 #include "terminal.h"
 
 AHC::AHC()
@@ -31,7 +33,7 @@ void AHC::initDecodeTree()
 }
 
 // 递归删除树
-void AHC::deleteTree(Node *node)
+void AHC::deleteTree(Node *&node)
 {
     if (node == nullptr)
         return;
@@ -210,6 +212,50 @@ Node *AHC::findCode(Node *node, const std::string &code, int &depth)
     return nullptr;
 }
 
+void AHC::middleOrderTree(Node *node, std::vector<std::pair<std::pair<Node *, Node *>, std::string>> &v)
+{
+    if (node == nullptr)
+        return;
+    middleOrderTree(node->left, v);
+    if (node->symbol == -1)
+    {
+        if (node->isLeaf())
+            v.push_back({{node, node->parent}, "NYT"});
+        else
+            v.push_back({{node, node->parent}, int2Roman(node->frequency)});
+    }
+    else
+    {
+        v.push_back({{node, node->parent}, std::string(1, node->symbol)});
+    }
+    middleOrderTree(node->right, v);
+}
+
+void AHC::outputTree(std::vector<std::pair<std::pair<Node *, Node *>, std::string>> &v)
+{
+    static int index = 0;
+    std::string filename = "../output_for_tree/output_binary_tree_" + std::to_string(index++) + ".txt";
+    std::ofstream out(filename);
+    std::vector<int> node_array(v.size(), 0);
+    std::unordered_map<Node *, int> node_map;
+    for (int i = 0; i < v.size(); i++)
+    {
+        node_map[v[i].first.first] = i + 1;
+    }
+    for (int i = 0; i < v.size(); i++)
+    {
+        if (v[i].first.second != nullptr)
+            node_array[i] = node_map[v[i].first.second];
+        else
+            node_array[i] = 0;
+    }
+    for (int i = 0; i < v.size(); i++)
+    {
+        out << node_array[i] << "," << v[i].second << std::endl;
+    }
+    out.close();
+}
+
 // void AHC::printTree(Node *node, int depth)
 // {
 //     if (node == nullptr)
@@ -244,6 +290,7 @@ Node *AHC::findCode(Node *node, const std::string &code, int &depth)
 std::string AHC::encode(const std::string &input)
 {
     initEncodeTree();
+    std::vector<std::pair<std::pair<Node *, Node *>, std::string>> v;
     std::string ret = "";
     for (const char symbol : input)
     {
@@ -268,13 +315,19 @@ std::string AHC::encode(const std::string &input)
         }
         // ret += ' '; // split each code with a space
         // showTree(); // show tree structure
+        v.clear();
+        middleOrderTree(encode_root, v);
+        outputTree(v);
         update(symbol, isFind, true);
     }
 
     // std::cout << input << std::endl;
-    std::cout << ret << std::endl;
+    // std::cout << ret << std::endl;
 
     // showTree(); // show the final tree structure
+    v.clear();
+    middleOrderTree(encode_root, v);
+    outputTree(v);
     // terminal::reset();
     // ret.erase(std::remove(ret.begin(), ret.end(), ' '), ret.end()); // remove all spaces
     deleteTree(encode_root);
@@ -309,7 +362,7 @@ std::string AHC::decode(std::string input)
         }
     }
 
-    std::cout << ret << std::endl;
+    // std::cout << ret << std::endl;
     deleteTree(decode_root);
     return ret;
 }
@@ -317,57 +370,44 @@ std::string AHC::decode(std::string input)
 // 动态调整树结构，保持树的平衡
 void AHC::update(const char symbol, Node *isFind, bool isEncode)
 {
-    Node *node = nullptr;
+    Node *cur_node = nullptr;
     if (isFind != nullptr)
-    {
-        node = isFind;
-
-        // 判断该叶子节点是否需要交换
-        Node *cur_node = node;
-        while (cur_node != nullptr)
-        {
-            Node *max_node = getMaxIndexNode(cur_node, isEncode);
-            // max_node 不可能为根节点 root
-            if (cur_node != max_node)
-                swapNode(cur_node, max_node);
-
-            cur_node->frequency++;
-            cur_node = cur_node->parent;
-        }
-    }
+        cur_node = isFind;
     else
     {
-        Node *new_node = nullptr;
-        if (isEncode)
-        {
-            new_node = new Node(symbol, 1, nullptr, nullptr, encode_NYT);
-            encode_NYT->right = new_node;
-            encode_NYT->left = new Node(NYT_SYMBOL, 0, nullptr, nullptr, encode_NYT);
-            encode_NYT = encode_NYT->left;
-        }
-        else
-        {
-            new_node = new Node(symbol, 1, nullptr, nullptr, decode_NYT);
-            decode_NYT->right = new_node;
-            decode_NYT->left = new Node(NYT_SYMBOL, 0, nullptr, nullptr, decode_NYT);
-            decode_NYT = decode_NYT->left;
-        }
+        Node *&NYT = isEncode ? encode_NYT : decode_NYT;
+        NYT->right = new Node(symbol, 1, nullptr, nullptr, NYT);
+        NYT->left = new Node(NYT_SYMBOL, 0, nullptr, nullptr, NYT);
+        NYT = NYT->left;
 
-        new_node->parent->frequency++;
+        // if (isEncode)
+        // {
+        //     new_node = new Node(symbol, 1, nullptr, nullptr, encode_NYT);
+        //     encode_NYT->right = new_node;
+        //     encode_NYT->left = new Node(NYT_SYMBOL, 0, nullptr, nullptr, encode_NYT);
+        //     encode_NYT = encode_NYT->left;
+        // }
+        // else
+        // {
+        //     new_node = new Node(symbol, 1, nullptr, nullptr, decode_NYT);
+        //     decode_NYT->right = new_node;
+        //     decode_NYT->left = new Node(NYT_SYMBOL, 0, nullptr, nullptr, decode_NYT);
+        //     decode_NYT = decode_NYT->left;
+        // }
 
-        // 判断该子树的父节点是否需要交换
-        node = new_node->parent->parent;
+        NYT->parent->frequency++;
 
-        Node *cur_node = node;
-        while (cur_node != nullptr)
-        {
-            Node *max_node = getMaxIndexNode(cur_node, isEncode);
-            if (cur_node != max_node)
-                swapNode(cur_node, max_node);
+        cur_node = NYT->parent->parent;
+    }
 
-            cur_node->frequency++;
-            cur_node = cur_node->parent;
-        }
+    while (cur_node != nullptr)
+    {
+        Node *max_node = getMaxIndexNode(cur_node, isEncode);
+        if (cur_node != max_node)
+            swapNode(cur_node, max_node);
+
+        cur_node->frequency++;
+        cur_node = cur_node->parent;
     }
 }
 
